@@ -3,10 +3,8 @@
 import cv2
 import os
 import random
-import numpy as np
 
 THRESHOLD = 15
-BAD_DISTANCE = 100
 
 def dumpfile(file):
     with open(file) as fd:
@@ -71,7 +69,6 @@ def get_finger_features(orb, finger):
 
 def compare_fingers(data, set1_descriptors, set2_descriptors):
     global THRESHOLD
-    global BAD_DISTANCE
 
     acceptance = 0
     insult = 0
@@ -91,22 +88,16 @@ def compare_fingers(data, set1_descriptors, set2_descriptors):
                 sum_distance += m.distance
 
         count = len(good_matches)
-        avg_distance = sum_distance/count
         current_threshold = THRESHOLD
 
         is_real_match = datum["real"]
-        if count > current_threshold:
-            if not is_real_match:
-                BAD_DISTANCE += avg_distance
-                BAD_DISTANCE = BAD_DISTANCE/2
+        if count > current_threshold and datum["fl"] == datum["sl"]:
             if is_real_match:
                 acceptance += 1
-            elif avg_distance < BAD_DISTANCE*.95:
-                fraud += 1
             else:
-                rejection += 1
+                fraud += 1
         else:
-            if is_real_match and avg_distance > BAD_DISTANCE*1.05:
+            if is_real_match:
                 insult += 1
             else:
                 rejection += 1
@@ -135,7 +126,8 @@ def main():
 
     acceptance_test, insult_test, fraud_test, rejection_test = compare_fingers(testing_data, f_test_descriptors, s_test_descriptors)
     total = (acceptance_test + insult_test + fraud_test + rejection_test)/100
-    print("Test Results: \nAcceptance:", acceptance_test/total, "% \nInsult:", insult_test/total, "% \nFraud:", fraud_test/total, "% \nRejection:", rejection_test/total, "%")
+    print("Test Results: \nAcceptance:", acceptance_test/total, "%\nRejection:", rejection_test/total, "% \nInsult:", insult_test/total, "% \nFraud:", fraud_test/total, "%")
+
 if __name__ == "__main__":
     main()
 
