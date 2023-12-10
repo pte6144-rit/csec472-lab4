@@ -5,6 +5,9 @@ import os
 import random
 import numpy as np
 
+THRESHOLD = 15
+BAD_DISTANCE = 100
+
 def dumpfile(file):
     with open(file) as fd:
         return fd.read()
@@ -61,44 +64,49 @@ def preprocess_fingers(orb, fingers):
 
 def get_finger_features(orb, finger):
     image = cv2.imread(finger, cv2.IMREAD_GRAYSCALE)
-    image = cv2.GaussianBlur(image, (5, 5), 0)
     image = cv2.equalizeHist(image)
-    
-    image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-
-    kernel = np.ones((3,3), np.uint8)
-    image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
-
-    sharpening_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-    image = cv2.filter2D(image, -1, sharpening_kernel)
-
+    _, image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     features, des = orb.detectAndCompute(image, None)
     return des
 
+def compare_fingers(data, set1_descriptors, set2_descriptors):
+    global THRESHOLD
+    global BAD_DISTANCE
 
-def compare_fingers(data, set1_descriptors, set2_descriptors, threshold=1000):
     acceptance = 0
     insult = 0
     fraud = 0
     rejection = 0
-
     for datum in data:
         des1 = set1_descriptors[datum["fi"]]
         des2 = set2_descriptors[datum["si"]]
 
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        matches = bf.match(des1, des2)
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1, des2, k=2)
+        good_matches = []
+        sum_distance = 0
+        for m, n in matches:
+            if m.distance < 0.7 * n.distance:
+                good_matches.append(m)
+                sum_distance += m.distance
 
-        count = len(matches)
+        count = len(good_matches)
+        avg_distance = sum_distance/count
+        current_threshold = THRESHOLD
+
         is_real_match = datum["real"]
-
-        if count > threshold:
+        if count > current_threshold:
+            if not is_real_match:
+                BAD_DISTANCE += avg_distance
+                BAD_DISTANCE = BAD_DISTANCE/2
             if is_real_match:
                 acceptance += 1
-            else:
+            elif avg_distance < BAD_DISTANCE*.95:
                 fraud += 1
+            else:
+                rejection += 1
         else:
-            if is_real_match:
+            if is_real_match and avg_distance > BAD_DISTANCE*1.05:
                 insult += 1
             else:
                 rejection += 1
@@ -106,45 +114,28 @@ def compare_fingers(data, set1_descriptors, set2_descriptors, threshold=1000):
     return acceptance, insult, fraud, rejection
 
 def main():
-    orb = cv2.ORB_create(nfeatures=3000, scaleFactor=1.2)
+    orb = cv2.ORB_create(nfeatures=3000, scaleFactor=1.1, nlevels=15, edgeThreshold=40, fastThreshold=18, WTA_K=3, scoreType=cv2.ORB_HARRIS_SCORE)
 
-    #print("Starting Training")
-    #training_data = shuffle_files("train")
-    #f_train_fingers = [data["fi"] for data in training_data]
-    #s_train_fingers = [data["si"] for data in training_data]
-    #f_train_descriptors = preprocess_fingers(orb, f_train_fingers)
-    #s_train_descriptors = preprocess_fingers(orb, s_train_fingers)
+    print("Starting Training")
+    training_data = shuffle_files("train")
+    f_train_fingers = [data["fi"] for data in training_data]
+    s_train_fingers = [data["si"] for data in training_data]
+    f_train_descriptors = preprocess_fingers(orb, f_train_fingers)
+    s_train_descriptors = preprocess_fingers(orb, s_train_fingers)
 
-    #acceptance, insult, fraud, rejection = compare_fingers(training_data, f_train_descriptors, s_train_descriptors)
-    #print("Training Results: Acceptance:", acceptance, "Insult:", insult, "Fraud:", fraud, "Rejection:", rejection)
+    acceptance, insult, fraud, rejection = compare_fingers(training_data, f_train_descriptors, s_train_descriptors)
+    print("Finished Training")
 
-    print("\nStart Testing")
+    print("\nStarting Testing")
     testing_data = shuffle_files("test")
     f_test_fingers = [data["fi"] for data in testing_data]
     s_test_fingers = [data["si"] for data in testing_data]
     f_test_descriptors = preprocess_fingers(orb, f_test_fingers)
     s_test_descriptors = preprocess_fingers(orb, s_test_fingers)
 
-    #acceptance_test, insult_test, fraud_test, rejection_test = compare_fingers(testing_data, f_test_descriptors, s_test_descriptors)
-    #print("Test Results: Acceptance:", acceptance_test, "Insult:", insult_test, "Fraud:", fraud_test, "Rejection:", rejection_test)
-
-    best_threshold = 900
-    best_difference = float('inf')
-
-    for threshold in range(900, 1000, 10):  # Example range and step
-        acceptance, insult, fraud, rejection = compare_fingers(testing_data, f_test_descriptors, s_test_descriptors, threshold)
-        difference = abs(200 - acceptance) + abs(200 - rejection)
-
-        if difference < best_difference:
-            best_difference = difference
-            best_threshold = threshold
-            acceptance_test = acceptance
-            insult_test = insult
-            fraud_test = fraud
-            rejection_test = rejection
-
-    print("Best Threshold:", best_threshold)
-    print("Test Results: Acceptance:", acceptance_test, "Insult:", insult_test, "Fraud:", fraud_test, "Rejection:", rejection_test)
+    acceptance_test, insult_test, fraud_test, rejection_test = compare_fingers(testing_data, f_test_descriptors, s_test_descriptors)
+    total = (acceptance_test + insult_test + fraud_test + rejection_test)/100
+    print("Test Results: \nAcceptance:", acceptance_test/total, "% \nInsult:", insult_test/total, "% \nFraud:", fraud_test/total, "% \nRejection:", rejection_test/total, "%")
 if __name__ == "__main__":
     main()
 
