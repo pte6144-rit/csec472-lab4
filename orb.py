@@ -4,7 +4,7 @@ import cv2
 import os
 import random
 
-THRESHOLD = 15
+THRESHOLD = 13
 
 def dumpfile(file):
     with open(file) as fd:
@@ -105,6 +105,7 @@ def compare_fingers(data, set1_descriptors, set2_descriptors):
     return acceptance, insult, fraud, rejection
 
 def main():
+    global THRESHOLD
     orb = cv2.ORB_create(nfeatures=3000, scaleFactor=1.1, nlevels=15, edgeThreshold=40, fastThreshold=18, WTA_K=3, scoreType=cv2.ORB_HARRIS_SCORE)
 
     print("Starting Training")
@@ -115,6 +116,10 @@ def main():
     s_train_descriptors = preprocess_fingers(orb, s_train_fingers)
 
     acceptance, insult, fraud, rejection = compare_fingers(training_data, f_train_descriptors, s_train_descriptors)
+    if (insult/fraud) > 1.25:
+        THRESHOLD -= 1
+    elif (insult/fraud) < .75:
+        THRESHOLD += 1
     print("Finished Training")
 
     print("\nStarting Testing")
