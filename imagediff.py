@@ -64,6 +64,29 @@ def get_ridges(line):
         third_previous, second_previous, first_previous = second_previous, first_previous, new
     return ridges
 
+
+def decide(datum, metric):
+    line = list(datum["fi"].getdata())
+    line = line[int(512 * 127.3):int(512 * 127.7)] + line[int(512 * 255.3):int(512 * 255.7)] + line[
+                                                                                               int(512 * 383.3):int(
+                                                                                                   512 * 383.7)]
+    firstLines = get_ridges(line)
+    line = list(datum["si"].getdata())
+    line = line[int(512 * 127.3):int(512 * 127.7)] + line[int(512 * 255.3):int(512 * 255.7)] + line[
+                                                                                               int(512 * 383.3):int(
+                                                                                                   512 * 383.7)]
+    secondLines = get_ridges(line)
+    if abs(firstLines - secondLines) <= metric and datum["fl"] == datum["sl"]:
+        if datum["real"]:
+            return "accept"
+        else:
+            return "fraud"
+    else:
+        if datum["real"]:
+            return "insult"
+        else:
+            return "reject"
+
 def main():
     print("Beginning Training")
     print("Please be Patient")
@@ -96,22 +119,16 @@ def main():
     fraud = 0
     reject = 0
     for datum in test:
-        line = list(datum["fi"].getdata())
-        line = line[int(512*127.3):int(512*127.7)] + line[int(512*255.3):int(512*255.7)] + line[int(512*383.3):int(512*383.7)]
-        firstLines = get_ridges(line)
-        line = list(datum["si"].getdata())
-        line = line[int(512*127.3):int(512*127.7)] + line[int(512*255.3):int(512*255.7)] + line[int(512*383.3):int(512*383.7)]
-        secondLines = get_ridges(line)
-        if abs(firstLines - secondLines) <= eer_sum and datum["fl"] == datum["sl"]:
-            if datum["real"]:
-                accept += 1
-            else:
-                fraud += 1
+        result = decide(datum, eer_sum)
+        if result == "accept":
+            accept += 1
+        elif result == "reject":
+            reject += 1
+        elif result == "fraud":
+            fraud += 1
         else:
-            if datum["real"]:
-                insult += 1
-            else:
-                reject += 1
+            insult += 1
+
     print("Test Results:")
     print("Acceptance:", "{:.2%}".format(accept/500))
     print("Rejection:", "{:.2%}".format(reject/500))
