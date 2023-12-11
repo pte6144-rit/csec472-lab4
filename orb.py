@@ -4,7 +4,7 @@ import cv2
 import os
 import random
 
-THRESHOLD = 15
+THRESHOLD = 13
 
 def dumpfile(file):
     with open(file) as fd:
@@ -105,6 +105,7 @@ def compare_fingers(data, set1_descriptors, set2_descriptors):
     return acceptance, insult, fraud, rejection
 
 def main():
+    global THRESHOLD
     orb = cv2.ORB_create(nfeatures=3000, scaleFactor=1.1, nlevels=15, edgeThreshold=40, fastThreshold=18, WTA_K=3, scoreType=cv2.ORB_HARRIS_SCORE)
 
     print("Starting Training")
@@ -115,18 +116,63 @@ def main():
     s_train_descriptors = preprocess_fingers(orb, s_train_fingers)
 
     acceptance, insult, fraud, rejection = compare_fingers(training_data, f_train_descriptors, s_train_descriptors)
+    if (insult/fraud) > 1.25:
+        THRESHOLD -= 1
+    elif (insult/fraud) < .75:
+        THRESHOLD += 1
     print("Finished Training")
 
-    print("\nStarting Testing")
-    testing_data = shuffle_files("test")
-    f_test_fingers = [data["fi"] for data in testing_data]
-    s_test_fingers = [data["si"] for data in testing_data]
-    f_test_descriptors = preprocess_fingers(orb, f_test_fingers)
-    s_test_descriptors = preprocess_fingers(orb, s_test_fingers)
+    insult_min = 0
+    insult_max = 0
+    insult_avg = 0
+    fraud_min = 0
+    fraud_max = 0
+    fraud_avg = 0
+    err = []
+    for i in range (15):
+        print("\nStarting Testing")
+        testing_data = shuffle_files("test")
+        f_test_fingers = [data["fi"] for data in testing_data]
+        s_test_fingers = [data["si"] for data in testing_data]
+        f_test_descriptors = preprocess_fingers(orb, f_test_fingers)
+        s_test_descriptors = preprocess_fingers(orb, s_test_fingers)
 
-    acceptance_test, insult_test, fraud_test, rejection_test = compare_fingers(testing_data, f_test_descriptors, s_test_descriptors)
-    total = (acceptance_test + insult_test + fraud_test + rejection_test)/100
-    print("Test Results: \nAcceptance:", acceptance_test/total, "%\nRejection:", rejection_test/total, "% \nInsult:", insult_test/total, "% \nFraud:", fraud_test/total, "%")
+        acceptance_test, insult_test, fraud_test, rejection_test = compare_fingers(testing_data, f_test_descriptors, s_test_descriptors)
+        total = (acceptance_test + insult_test + fraud_test + rejection_test)/100
+        print("Test Results: \nAcceptance:", acceptance_test/total, "%\nRejection:", rejection_test/total, "% \nInsult:", insult_test/total, "% \nFraud:", fraud_test/total, "%")
+
+        if i == 0:
+            insult_min = insult_test/total
+            insult_max = insult_test/total
+            insult_avg = insult_test/total
+            fraud_min = fraud_test/total
+            fraud_max = fraud_test/total
+            fraud_avg = fraud_test/total
+        else:
+            if insult_test < insult_min:
+                insult_min = insult_test/total
+            if insult_test > insult_max:
+                insult_max = insult_test/total
+            if fraud_test < fraud_min:
+                fraud_min = fraud_test/total
+            if fraud_test > fraud_max:
+                fraud_max = fraud_test/total
+
+            insult_avg = ((insult_avg) + (insult_test/total))/2
+            fraud_avg = ((fraud_avg) + (fraud_test/total))/2
+        if insult_test/total == fraud_test/total:
+            err.append(insult_test/total)
+
+    print("FRR Min: ", insult_min)
+    print("FRR Avg: ", insult_avg)
+    print("FRR Max: ", insult_max)
+
+    print("FAR Min: ", fraud_min)
+    print("FAR Avg: ", fraud_avg)
+    print("FAR Max: ", fraud_max)
+    print("Err: ", err)
+
+    
 
 if __name__ == "__main__":
     main()
