@@ -67,42 +67,46 @@ def get_finger_features(orb, finger):
     features, des = orb.detectAndCompute(image, None)
     return des
 
-def compare_fingers(data, set1_descriptors, set2_descriptors):
+def compare_fingers(datum, set1_descriptors, set2_descriptors):
     global THRESHOLD
 
     acceptance = 0
     insult = 0
     fraud = 0
     rejection = 0
-    for datum in data:
-        des1 = set1_descriptors[datum["fi"]]
-        des2 = set2_descriptors[datum["si"]]
+    #for datum in data:
+    des1 = set1_descriptors[datum["fi"]]
+    des2 = set2_descriptors[datum["si"]]
 
-        bf = cv2.BFMatcher()
-        matches = bf.knnMatch(des1, des2, k=2)
-        good_matches = []
-        sum_distance = 0
-        for m, n in matches:
-            if m.distance < 0.7 * n.distance:
-                good_matches.append(m)
-                sum_distance += m.distance
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(des1, des2, k=2)
+    good_matches = []
+    sum_distance = 0
+    for m, n in matches:
+        if m.distance < 0.7 * n.distance:
+            good_matches.append(m)
+            sum_distance += m.distance
 
-        count = len(good_matches)
-        current_threshold = THRESHOLD
+    count = len(good_matches)
+    current_threshold = THRESHOLD
 
-        is_real_match = datum["real"]
-        if count > current_threshold and datum["fl"] == datum["sl"]:
-            if is_real_match:
-                acceptance += 1
-            else:
-                fraud += 1
+    is_real_match = datum["real"]
+    if count > current_threshold and datum["fl"] == datum["sl"]:
+        if is_real_match:
+            #acceptance += 1
+            return "accept"
         else:
-            if is_real_match:
-                insult += 1
-            else:
-                rejection += 1
+            #fraud += 1
+            return "fraud"
+    else:
+        if is_real_match:
+            #insult += 1
+            return "insult"
+        else:
+            #rejection += 1
+            return "reject"
 
-    return acceptance, insult, fraud, rejection
+    #return acceptance, insult, fraud, rejection
 
 def main():
     global THRESHOLD
@@ -115,7 +119,23 @@ def main():
     f_train_descriptors = preprocess_fingers(orb, f_train_fingers)
     s_train_descriptors = preprocess_fingers(orb, s_train_fingers)
 
-    acceptance, insult, fraud, rejection = compare_fingers(training_data, f_train_descriptors, s_train_descriptors)
+    acceptance = 0
+    insult = 0
+    fraud = 0
+    rejection = 0
+
+    #acceptance, insult, fraud, rejection = compare_fingers(training_data, f_train_descriptors, s_train_descriptors)
+    for datum in training_data:
+        result = compare_fingers(datum, f_train_descriptors, s_train_descriptors)
+        if result == "accept":
+            acceptance += 1
+        elif result == "reject":
+            rejection += 1
+        elif result == "fraud":
+            fraud += 1
+        else:
+            insult += 1
+
     if (insult/fraud) > 1.25:
         THRESHOLD -= 1
     elif (insult/fraud) < .75:
@@ -129,7 +149,21 @@ def main():
     f_test_descriptors = preprocess_fingers(orb, f_test_fingers)
     s_test_descriptors = preprocess_fingers(orb, s_test_fingers)
 
-    acceptance_test, insult_test, fraud_test, rejection_test = compare_fingers(testing_data, f_test_descriptors, s_test_descriptors)
+    acceptance_test = 0
+    insult_test = 0
+    fraud_test = 0
+    rejection_test = 0
+    #acceptance_test, insult_test, fraud_test, rejection_test = compare_fingers(testing_data, f_test_descriptors, s_test_descriptors)
+    for datum in testing_data:
+        result = compare_fingers(datum, f_test_descriptors, s_test_descriptors)
+        if result == "accept":
+            acceptance_test += 1
+        elif result == "reject":
+            rejection_test += 1
+        elif result == "fraud":
+            fraud_test += 1
+        else:
+            insult_test += 1
     total = (acceptance_test + insult_test + fraud_test + rejection_test)/100
     print("Test Results: \nAcceptance:", acceptance_test/total, "%\nRejection:", rejection_test/total, "% \nInsult:", insult_test/total, "% \nFraud:", fraud_test/total, "%")
 
