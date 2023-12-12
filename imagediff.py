@@ -32,7 +32,7 @@ def shuffle_files(dir):
     for i in range(len(firstImages)):
         line = {"fi": Image.open(dir + "/" + firstImages[i]), "ft": dumpfile(dir + "/" + firstText[i]),
                 "si": Image.open(dir + "/" + secondImages[i]), "st": dumpfile(dir + "/" + secondText[i]),
-                "fl": firstLetters[i], "sl": secondLetters[i]}
+                "fl": firstLetters[i], "sl": secondLetters[i], "fn": firstImages[i], "sn": secondImages[i]}
         data.append(line)
     for i in range(len(data)-1, -1, -1):
         if random.randrange(2):
@@ -46,7 +46,8 @@ def shuffle_files(dir):
     for i in range(len(copy)):
         opposing = random.randrange(len(copy))
         data.append({"fi": to_shuffle[i]["fi"], "ft": to_shuffle[i]["ft"], "fl": to_shuffle[i]["fl"],
-                     "si": copy[opposing]["si"], "st": copy[opposing]["st"], "sl": copy[opposing]["sl"], "real": False})
+                     "si": copy[opposing]["si"], "st": copy[opposing]["st"], "sl": copy[opposing]["sl"],
+                     "fn": to_shuffle[i]["fn"], "sn": copy[opposing]["sn"], "real": False})
         del copy[opposing]
     return data
 
