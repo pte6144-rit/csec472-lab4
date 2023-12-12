@@ -1,20 +1,26 @@
-import SimpleCV
+import cv2
+from skimage.metrics import structural_similarity
 import os
 import random
-from sklearn.linear_model import LogisticRegression
+import numpy as np
 # Define similarity threshold for prediction
 similarity_threshold = 0.8
 
 
 # Define functions for image processing and similarity score calculation
 def preprocess_image(img):
-    return img.grayscale().equalize()
+    img1_processed = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    return img1_processed
 
 def calculate_similarity(img1, img2):
     img1_processed = preprocess_image(img1)
     img2_processed = preprocess_image(img2)
-    correlation = img1_processed.matchTemplate(img2_processed)
-    return correlation.maxVal()
+
+    (score, diff) = structural_similarity(img1_processed, img2_processed, full=True)
+    
+    
+    return score
 
 
 def dumpfile(file):
@@ -70,22 +76,26 @@ def shuffle_files(dir):
 
 
 
-def comparing_fingers(data):
+def comparing_fingers(datum):
+    # Test a new pair of images
+    new_img1 = cv2.imread(datum["fi"])
+    new_img2 = cv2.imread(datum["si"])
+
+    new_similarity = calculate_similarity(new_img1, new_img2)
+
+    return new_similarity
+
+
+def main():
+    print("Starting Training")
+    training_data = shuffle_files("train")
     accept = 0
     insult = 0
     fraud = 0
     reject = 0
 
-
-    for datum in data:
-        # Test a new pair of images
-        new_img1 = SimpleCV.Image(datum["fi"])
-        new_img2 = SimpleCV.Image(datum["si"])
-
-        new_similarity = calculate_similarity(new_img1, new_img2)
-
-    
-
+    for datum in testing_data:
+        new_similarity = comparing_fingers(datum)
         if new_similarity > similarity_threshold:
             if datum["real"]:
                 accept += 1
@@ -97,23 +107,32 @@ def comparing_fingers(data):
             else:
                 reject += 1
 
-    return accept, insult, fraud, reject
-
-def main():
-    print("Starting Training")
-    training_data = shuffle_files("train")
-    accept, insult, fraud, reject = comparing_fingers(training_data)
-
-
     print("Finished Training")
 
     print("\nStarting Testing")
     testing_data = shuffle_files("test")
-    test_accept, test_insult, test_fraud, test_reject = comparing_fingers(testing_data)
-    print("Acceptance:", "{:.2%}".format(accept/500))
-    print("Rejection:", "{:.2%}".format(reject/500))
-    print("Insult:", "{:.2%}".format(insult/500))
-    print("Fraud:", "{:.2%}".format(fraud/500))
+    test_accept = 0
+    test_insult = 0
+    test_fraud = 0
+    test_reject = 0
+
+    for datum in testing_data:
+        new_similarity = comparing_fingers(datum)
+        if new_similarity > similarity_threshold:
+            if datum["real"]:
+                test_accept += 1
+            else:
+                test_fraud += 1
+        else:
+            if datum["real"]:
+                test_insult += 1
+            else:
+                test_reject += 1
+    
+    print("Acceptance:", "{:.2%}".format(test_accept/500))
+    print("Rejection:", "{:.2%}".format(test_reject/500))
+    print("Insult:", "{:.2%}".format(test_insult/500))
+    print("Fraud:", "{:.2%}".format(test_fraud/500))
 
 
 
