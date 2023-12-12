@@ -67,7 +67,7 @@ def get_ridges(line):
     return ridges
 
 
-def decide(datum, metric):
+def decide(datum, metric=11):
     line = list(datum["fi"].getdata())
     line = line[int(512 * 127.3):int(512 * 127.7)] + line[int(512 * 255.3):int(512 * 255.7)] + line[
                                                                                                int(512 * 383.3):int(
