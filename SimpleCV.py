@@ -94,7 +94,7 @@ def main():
     fraud = 0
     reject = 0
 
-    for datum in testing_data:
+    for datum in training_data:
         new_similarity = comparing_fingers(datum)
         if new_similarity > similarity_threshold:
             if datum["real"]:
