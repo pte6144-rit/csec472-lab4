@@ -96,7 +96,7 @@ def main():
 
     for datum in training_data:
         new_similarity = comparing_fingers(datum)
-        if new_similarity > similarity_threshold:
+        if new_similarity > similarity_threshold and datum["fl"] == datum["sl"]:
             if datum["real"]:
                 accept += 1
             else:
@@ -118,7 +118,7 @@ def main():
 
     for datum in testing_data:
         new_similarity = comparing_fingers(datum)
-        if new_similarity > similarity_threshold:
+        if new_similarity > similarity_threshold and datum["fl"] == datum["sl"]:
             if datum["real"]:
                 test_accept += 1
             else:
