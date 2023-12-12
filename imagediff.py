@@ -32,7 +32,8 @@ def shuffle_files(dir):
     for i in range(len(firstImages)):
         line = {"fi": Image.open(dir + "/" + firstImages[i]), "ft": dumpfile(dir + "/" + firstText[i]),
                 "si": Image.open(dir + "/" + secondImages[i]), "st": dumpfile(dir + "/" + secondText[i]),
-                "fl": firstLetters[i], "sl": secondLetters[i], "fn": firstImages[i], "sn": secondImages[i]}
+                "fl": firstLetters[i], "sl": secondLetters[i], "fn": dir + "/" + firstImages[i],
+                "sn": dir + "/" + secondImages[i]}
         data.append(line)
     for i in range(len(data)-1, -1, -1):
         if random.randrange(2):
