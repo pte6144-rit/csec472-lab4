@@ -37,7 +37,7 @@ def shuffle_files(dir):
     data = []
     to_shuffle = []
     for file in os.listdir(dir):
-        if file.endswith('.png'):
+        if file[-1] == "g":
             if file[0] == "s":
                 secondImages.append(file)
                 secondLetters.append(file[7])
@@ -50,9 +50,10 @@ def shuffle_files(dir):
             else:
                 secondText.append(file)
     for i in range(len(firstImages)):
-        line = {"fi": os.path.join(dir, firstImages[i]), "ft": dumpfile(os.path.join(dir, firstText[i])),
-                "si": os.path.join(dir, secondImages[i]), "st": dumpfile(os.path.join(dir, secondText[i])),
-                "fl": firstLetters[i], "sl": secondLetters[i]}
+        line = {"fi": Image.open(dir + "/" + firstImages[i]), "ft": dumpfile(dir + "/" + firstText[i]),
+                "si": Image.open(dir + "/" + secondImages[i]), "st": dumpfile(dir + "/" + secondText[i]),
+                "fl": firstLetters[i], "sl": secondLetters[i], "fn": dir + "/" + firstImages[i],
+                "sn": dir + "/" + secondImages[i]}
         data.append(line)
     for i in range(len(data)-1, -1, -1):
         if random.randrange(2):
@@ -66,7 +67,8 @@ def shuffle_files(dir):
     for i in range(len(copy)):
         opposing = random.randrange(len(copy))
         data.append({"fi": to_shuffle[i]["fi"], "ft": to_shuffle[i]["ft"], "fl": to_shuffle[i]["fl"],
-                     "si": copy[opposing]["si"], "st": copy[opposing]["st"], "sl": copy[opposing]["sl"], "real": False})
+                     "si": copy[opposing]["si"], "st": copy[opposing]["st"], "sl": copy[opposing]["sl"],
+                     "fn": to_shuffle[i]["fn"], "sn": copy[opposing]["sn"], "real": False})
         del copy[opposing]
     return data
 
@@ -78,8 +80,8 @@ def shuffle_files(dir):
 
 def comparing_fingers(datum):
     # Test a new pair of images
-    new_img1 = cv2.imread(datum["fi"])
-    new_img2 = cv2.imread(datum["si"])
+    new_img1 = cv2.imread(datum["fn"])
+    new_img2 = cv2.imread(datum["sn"])
 
     new_similarity = calculate_similarity(new_img1, new_img2)
 
