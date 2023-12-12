@@ -3,6 +3,7 @@
 import cv2
 import os
 import random
+from PIL import Image
 
 THRESHOLD = 13
 
@@ -20,7 +21,7 @@ def shuffle_files(dir):
     data = []
     to_shuffle = []
     for file in os.listdir(dir):
-        if file.endswith('.png'):
+        if file[-1] == "g":
             if file[0] == "s":
                 secondImages.append(file)
                 secondLetters.append(file[7])
@@ -33,9 +34,10 @@ def shuffle_files(dir):
             else:
                 secondText.append(file)
     for i in range(len(firstImages)):
-        line = {"fi": os.path.join(dir, firstImages[i]), "ft": dumpfile(os.path.join(dir, firstText[i])),
-                "si": os.path.join(dir, secondImages[i]), "st": dumpfile(os.path.join(dir, secondText[i])),
-                "fl": firstLetters[i], "sl": secondLetters[i]}
+        line = {"fi": Image.open(dir + "/" + firstImages[i]), "ft": dumpfile(dir + "/" + firstText[i]),
+                "si": Image.open(dir + "/" + secondImages[i]), "st": dumpfile(dir + "/" + secondText[i]),
+                "fl": firstLetters[i], "sl": secondLetters[i], "fn": dir + "/" + firstImages[i],
+                "sn": dir + "/" + secondImages[i]}
         data.append(line)
     for i in range(len(data)-1, -1, -1):
         if random.randrange(2):
@@ -49,7 +51,8 @@ def shuffle_files(dir):
     for i in range(len(copy)):
         opposing = random.randrange(len(copy))
         data.append({"fi": to_shuffle[i]["fi"], "ft": to_shuffle[i]["ft"], "fl": to_shuffle[i]["fl"],
-                     "si": copy[opposing]["si"], "st": copy[opposing]["st"], "sl": copy[opposing]["sl"], "real": False})
+                     "si": copy[opposing]["si"], "st": copy[opposing]["st"], "sl": copy[opposing]["sl"],
+                     "fn": to_shuffle[i]["fn"], "sn": copy[opposing]["sn"], "real": False})
         del copy[opposing]
     return data
 
@@ -75,8 +78,8 @@ def compare_fingers(datum, set1_descriptors, set2_descriptors):
     fraud = 0
     rejection = 0
     #for datum in data:
-    des1 = set1_descriptors[datum["fi"]]
-    des2 = set2_descriptors[datum["si"]]
+    des1 = set1_descriptors[datum["fn"]]
+    des2 = set2_descriptors[datum["sn"]]
 
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(des1, des2, k=2)
@@ -114,8 +117,8 @@ def main():
 
     print("Starting Training")
     training_data = shuffle_files("train")
-    f_train_fingers = [data["fi"] for data in training_data]
-    s_train_fingers = [data["si"] for data in training_data]
+    f_train_fingers = [data["fn"] for data in training_data]
+    s_train_fingers = [data["sn"] for data in training_data]
     f_train_descriptors = preprocess_fingers(orb, f_train_fingers)
     s_train_descriptors = preprocess_fingers(orb, s_train_fingers)
 
@@ -144,8 +147,8 @@ def main():
 
     print("\nStarting Testing")
     testing_data = shuffle_files("test")
-    f_test_fingers = [data["fi"] for data in testing_data]
-    s_test_fingers = [data["si"] for data in testing_data]
+    f_test_fingers = [data["fn"] for data in testing_data]
+    s_test_fingers = [data["sn"] for data in testing_data]
     f_test_descriptors = preprocess_fingers(orb, f_test_fingers)
     s_test_descriptors = preprocess_fingers(orb, s_test_fingers)
 
