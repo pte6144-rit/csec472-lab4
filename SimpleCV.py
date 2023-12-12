@@ -95,6 +95,16 @@ def decide(datum):
     sc = datum["st"].split("\n")[1][7]
     return new_similarity > similarity_threshold and datum["fl"] == datum["sl"] and fc == sc
 
+def stringy_decide(datum):
+    if decide(datum) and datum["real"]:
+        return "accept"
+    elif decide(datum) and not datum["real"]:
+        return "fraud"
+    elif datum["real"]:
+        return "insult"
+    else:
+        return "reject"
+
 
 def main():
     print("Starting Training")

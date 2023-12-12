@@ -12,7 +12,7 @@ def majority(datum, f_test_descriptors, s_test_descriptors):
     results.append(orb.compare_fingers(datum, f_test_descriptors, s_test_descriptors))
 
     # get result from SimpleCV
-    results.append(SimpleCV.comparing_fingers(datum))
+    results.append(SimpleCV.stringy_decide(datum))
 
     accept = 0
     reject = 0
