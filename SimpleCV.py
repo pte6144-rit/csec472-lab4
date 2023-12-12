@@ -4,7 +4,7 @@ import os
 import random
 import numpy as np
 # Define similarity threshold for prediction
-similarity_threshold = 0.8
+similarity_threshold = 0.09
 
 
 # Define functions for image processing and similarity score calculation
@@ -94,18 +94,18 @@ def main():
     fraud = 0
     reject = 0
 
-    for datum in training_data:
-        new_similarity = comparing_fingers(datum)
-        if new_similarity > similarity_threshold and datum["fl"] == datum["sl"]:
-            if datum["real"]:
-                accept += 1
-            else:
-                fraud += 1
-        else:
-            if datum["real"]:
-                insult += 1
-            else:
-                reject += 1
+    #for datum in training_data:
+    #    new_similarity = comparing_fingers(datum)
+    #    if new_similarity > similarity_threshold and datum["fl"] == datum["sl"]:
+    #        if datum["real"]:
+    #            accept += 1
+    #        else:
+    #            fraud += 1
+    #    else:
+    #        if datum["real"]:
+    #            insult += 1
+    #        else:
+    #            reject += 1
 
     print("Finished Training")
 
@@ -118,7 +118,9 @@ def main():
 
     for datum in testing_data:
         new_similarity = comparing_fingers(datum)
-        if new_similarity > similarity_threshold and datum["fl"] == datum["sl"]:
+        fc = datum["ft"].split("\n")[1][7]
+        sc = datum["st"].split("\n")[1][7]
+        if new_similarity > similarity_threshold and datum["fl"] == datum["sl"] and fc == sc:
             if datum["real"]:
                 test_accept += 1
             else:
