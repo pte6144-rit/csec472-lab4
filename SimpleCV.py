@@ -89,6 +89,12 @@ def comparing_fingers(datum):
 
     return new_similarity
 
+def decide(datum):
+    new_similarity = comparing_fingers(datum)
+    fc = datum["ft"].split("\n")[1][7]
+    sc = datum["st"].split("\n")[1][7]
+    return new_similarity > similarity_threshold and datum["fl"] == datum["sl"] and fc == sc
+
 
 def main():
     print("Starting Training")
@@ -121,10 +127,7 @@ def main():
     test_reject = 0
 
     for datum in testing_data:
-        new_similarity = comparing_fingers(datum)
-        fc = datum["ft"].split("\n")[1][7]
-        sc = datum["st"].split("\n")[1][7]
-        if new_similarity > similarity_threshold and datum["fl"] == datum["sl"] and fc == sc:
+        if decide(datum):
             if datum["real"]:
                 test_accept += 1
             else:
