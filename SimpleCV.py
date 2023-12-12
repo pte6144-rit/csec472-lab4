@@ -3,6 +3,8 @@ from skimage.metrics import structural_similarity
 import os
 import random
 import numpy as np
+from PIL import Image
+
 # Define similarity threshold for prediction
 similarity_threshold = 0.09
 
